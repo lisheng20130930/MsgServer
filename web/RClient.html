@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+	.bTn {
+		border-width: 0px;
+		border-radius: 3px;
+		background: #1E90FF;
+		cursor: pointer;
+		outline: none;
+		color: white;
+		font-size: 20px;
+		padding-top:2px;
+		padding-bottom:5px;
+	}
+	.Conlse {
+		width:80%;/*自动适应父布局宽度*/
+		overflow:auto;
+		word-break:break-all;
+		font-size: 20px; 
+		border-width:5px; 
+		background:black; 
+		color:white;
+	}
+	</style>
+	<script type="text/javascript">	
+		var wsUrl = "ws://127.0.0.1:28000/msgserver";
+		var lockReconnect = false;
+		var ws;
+		var tt;
+		
+		function createWebSocket(){
+            try {
+                ws = new WebSocket(wsUrl);
+                websocketInit();
+            } catch (e) {                
+                showMessage("初始化异常...");
+            }
+        }
+
+        function websocketInit() {            
+            ws.onopen = function (evt) {
+                onOpen(evt);
+            };            
+            ws.onclose = function (evt) {
+                onClose(evt);
+            };            
+            ws.onmessage = function (evt) {
+                onMessage(evt);
+            };
+        };
+
+        function onOpen(evt) {		    
+		    showMessage("连接成功...");
+            ws.send("{'cmd':'100','id':'100000'}");
+            heartCheck.start();
+        }
+
+        function onClose(evt) {
+			showMessage("连接已关闭...");
+			websocketReconnect(wsUrl);
+        }
+
+        function onMessage(evt) {
+            console.log('接收消息: ' + evt.data);
+            var data = JSON.parse(evt.data);
+            console.log(data);
+            console.log(data.heart);
+            if (data.cmd=='300') {
+				ws.send("{'cmd':'103','id':'100000'}");
+            }else if (data.cmd=='501') {
+			    showMessage("心跳成功...");
+				heartCheck.start();
+            }else if (data.cmd=='200'){
+				showMessage(data.content);
+			}
+        }
+
+        function websocketReconnect(url) {
+            if (lockReconnect) {
+                return;
+            };
+			showMessage("重新连接中...");
+            lockReconnect = true;            
+            tt && clearTimeout(tt);
+            tt = setTimeout(function () {
+                createWebSocket(url);
+                lockReconnect = false;
+            }, 3000);
+        }
+
+        var heartCheck = {
+            timeout: 15000,
+            timeoutObj: null,
+            start: function () {                
+                var self = this;
+                this.timeoutObj && clearTimeout(this.timeoutObj);
+                this.timeoutObj = setTimeout(function () {                    
+                    ws.send("{'cmd':'500','id':'100000'}");
+                }, this.timeout)
+            },
+			stop: function () {
+				this.timeoutObj && clearTimeout(this.timeoutObj);
+			}
+        }
+		
+		function showMessage(content){
+			var ele = document.getElementById("logViewer");
+			ele.value = ele.value + content+'\n';
+			ele.scrollTop = ele.scrollHeight;
+		}
+		
+		function startTrace(){
+		    updateSwitcher('断开');	
+			lockReconnect = false;			
+			createWebSocket();
+		}
+		
+		function stopTrace(){
+			updateSwitcher('连接');
+			tt&&clearTimeout(tt);
+			heartCheck.stop();
+			lockReconnect = true;
+			if(ws==null){
+				return;
+			}
+			ws.close();
+		}
+		
+		function updateSwitcher(nv){
+			var ele = document.getElementById("switcher");
+			ele.value = nv;
+		}
+		
+		function switchTracker(){
+			var ele = document.getElementById("switcher");
+			if(ele.value=='断开'){				
+				stopTrace();
+			}else{
+				startTrace();
+			}
+		}
+		
+		function clearTracker(){
+			var ele = document.getElementById("logViewer");
+			ele.value="";
+		}
+	</script>
+</head>
+
+<body style="background:black;">
+	<div>	
+		<div>			
+			<span style="color:green; font-size: 20px;"><b>机器人-网页控制台&nbsp;&nbsp;</b></span>
+			<input id="switcher" class="bTn" type="button" onclick="switchTracker()" value='连接' />&nbsp;&nbsp;
+			<input class="bTn" type="button" onclick="clearTracker()" value='清空' />
+		</div>
+		<br>
+		<textarea id="logViewer" class="Conlse" rows="20" cols="5"></textarea>
+	</div>
+</body>
+
+</html>
