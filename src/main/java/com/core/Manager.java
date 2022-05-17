@@ -15,7 +15,7 @@ public class Manager implements Thttpd.WsHandler{
     public static final int MAX_SIZE = 256;
     private static Manager sInstance = new Manager();
     private MessageSender sender = null;
-    private List<CHarbor> clientList;
+    private List<RClient> clientList;
     private Parser parser;
 
     private Manager(){
@@ -65,11 +65,11 @@ public class Manager implements Thttpd.WsHandler{
     }
 
     public void onClosing(Connection conn){
-        CHarbor client = getClientByConn(conn);
+        RClient client = getClientByConn(conn);
         if(client==null){
             return;
         }
-        client.setStatus(CHarbor.EcStatus.OFFLINE);
+        client.setStatus(RClient.EcStatus.OFFLINE);
         client.setConn(null);
     }
 
@@ -88,10 +88,10 @@ public class Manager implements Thttpd.WsHandler{
         if(CmmnUtils.isEmpty(id)){
             return false;
         }
-        CHarbor client = getClientById(id);
+        RClient client = getClientById(id);
         if(client!=null){
-            if(client.getStatus()== CHarbor.EcStatus.OFFLINE){
-                client.setStatus(CHarbor.EcStatus.NONE);
+            if(client.getStatus()== RClient.EcStatus.OFFLINE){
+                client.setStatus(RClient.EcStatus.NONE);
                 client.setConn(conn);
             }else{
                 client.getConn().close(0);
@@ -99,10 +99,10 @@ public class Manager implements Thttpd.WsHandler{
             }
         }
         if(client == null){
-            client = new CHarbor();
+            client = new RClient();
             client.setId(id);
             client.setConn(conn);
-            client.setStatus(CHarbor.EcStatus.NONE);
+            client.setStatus(RClient.EcStatus.NONE);
             client.setQueue(new Queue(MAX_SIZE));
             clientList.add(client);
         }
@@ -113,12 +113,12 @@ public class Manager implements Thttpd.WsHandler{
     }
 
     public void handlePublish(String destId, String content){
-        CHarbor c = getClientById(destId);
+        RClient c = getClientById(destId);
         if(c==null){
             c = loadClientOffline(destId);
         }
         c.getQueue().push(content);
-        if(!c.getStatus().equals(CHarbor.EcStatus.RECEIVING)){
+        if(!c.getStatus().equals(RClient.EcStatus.RECEIVING)){
             return;
         }
         String msg = buildMsg(CMD_MsgServer.S_MsgNew,content);
@@ -134,11 +134,11 @@ public class Manager implements Thttpd.WsHandler{
                 || CmmnUtils.isEmpty(content)){
             return false;
         }
-        CHarbor client = getClientById(id);
+        RClient client = getClientById(id);
         if(client==null){
             return false;
         }
-        if(client.getStatus().equals(CHarbor.EcStatus.OFFLINE)){
+        if(client.getStatus().equals(RClient.EcStatus.OFFLINE)){
             return false;
         }
         String msg = buildMsg(CMD_MsgServer.S_PublishSuccess,"success");
@@ -153,19 +153,19 @@ public class Manager implements Thttpd.WsHandler{
         if(CmmnUtils.isEmpty(id)){
             return false;
         }
-        CHarbor client = getClientById(id);
+        RClient client = getClientById(id);
         if(client==null){
             return false;
         }
-        if(client.getStatus().equals(CHarbor.EcStatus.OFFLINE)){
+        if(client.getStatus().equals(RClient.EcStatus.OFFLINE)){
             return false;
         }
         String msg = buildMsg(CMD_MsgServer.S_Receiving,"success");
         sendMessage(client.getConn(), msg);
-        if(client.getStatus().equals(CHarbor.EcStatus.RECEIVING)){
+        if(client.getStatus().equals(RClient.EcStatus.RECEIVING)){
             return true;
         }
-        client.setStatus(CHarbor.EcStatus.RECEIVING);
+        client.setStatus(RClient.EcStatus.RECEIVING);
         List<String> dataList = client.getQueue().getAll(markLine);
         if(dataList.size()>0){
             for(String s: dataList){
@@ -181,7 +181,7 @@ public class Manager implements Thttpd.WsHandler{
         if(CmmnUtils.isEmpty(id)){
             return false;
         }
-        CHarbor client = getClientById(id);
+        RClient client = getClientById(id);
         if(client==null){
             return false;
         }
@@ -189,18 +189,18 @@ public class Manager implements Thttpd.WsHandler{
         return sendMessage(client.getConn(),msg);
     }
 
-    private CHarbor loadClientOffline(String id) {
-        CHarbor client = new CHarbor();
+    private RClient loadClientOffline(String id) {
+        RClient client = new RClient();
         client.setId(id);
         client.setConn(null);
-        client.setStatus(CHarbor.EcStatus.OFFLINE);
+        client.setStatus(RClient.EcStatus.OFFLINE);
         client.setQueue(new Queue(MAX_SIZE));
         client.setLoginTime(new Date());
         return client;
     }
 
-    private CHarbor getClientByConn(Connection conn) {
-        for(CHarbor c : clientList){
+    private RClient getClientByConn(Connection conn) {
+        for(RClient c : clientList){
             if(c.getConn()==conn){
                 return c;
             }
@@ -208,8 +208,8 @@ public class Manager implements Thttpd.WsHandler{
         return null;
     }
 
-    private CHarbor getClientById(String id) {
-        for(CHarbor c : clientList){
+    private RClient getClientById(String id) {
+        for(RClient c : clientList){
             if(c.getId().equals(id)){
                 return c;
             }
