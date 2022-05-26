@@ -100,9 +100,9 @@ public class MsgServer extends Thttpd implements Manager.MessageSender {
     @Override
     public void onClosing(Connection conn, int code) {
         Object p = conn.getUsr();
-        if (p != null && p instanceof WsParser) {
+        if (p != null && p instanceof SnParser) {
             Manager.getInstance().onClosing(conn);
-            ((WsParser)p).clear();
+            ((SnParser)p).clear();
             conn.setUsr(null);
             Logger.log("[THttpD] WebSocket closed");
         }

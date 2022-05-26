@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WsParser{
+public class SnParser {
     private static final int BUFFER_SIZE = 256;
     private ByteBuffer gBuffer = null;
     private Delegate delegate = null;
@@ -15,7 +15,7 @@ public class WsParser{
     private String host = null;
     private String key = null;
 
-    public WsParser(Connection conn, Delegate delegate){
+    public SnParser(Connection conn, Delegate delegate){
         this.gBuffer = ByteBuffer.allocate(BUFFER_SIZE);
         this.delegate = delegate;
         this.conn = conn;

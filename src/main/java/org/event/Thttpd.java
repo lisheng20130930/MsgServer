@@ -54,16 +54,16 @@ public abstract class Thttpd implements Observer, Connection.Handler{
         });
     }
 
-    private boolean onWsFrameDefault(Connection conn, WsParser.WsFrame frame){
+    private boolean onWsFrameDefault(Connection conn, SnParser.WsFrame frame){
         boolean r = false;
         switch(frame.frameType){
-            case WsParser.WsFrame.WS_PING_FRAME:
+            case SnParser.WsFrame.WS_PING_FRAME:
                 {
-                    WsParser.WsFrame rsp = new WsParser.WsFrame(WsParser.WsFrame.WS_PONG_FRAME, null);
+                    SnParser.WsFrame rsp = new SnParser.WsFrame(SnParser.WsFrame.WS_PONG_FRAME, null);
                     r = conn.sendBuffer(rsp.toByteBuffer().array());
                 }
                 break;
-            case WsParser.WsFrame.WS_CLOSING_FRAME:
+            case SnParser.WsFrame.WS_CLOSING_FRAME:
                 {
                     conn.close(0);
                     r = false;
@@ -75,12 +75,12 @@ public abstract class Thttpd implements Observer, Connection.Handler{
         return r;
     }
 
-    private WsParser newWsParser(Connection conn){
-        return new WsParser(conn, new WsParser.Delegate() {
+    private SnParser newWsParser(Connection conn){
+        return new SnParser(conn, new SnParser.Delegate() {
             @Override
-            public boolean onWsFrame(Connection conn, WsParser.WsFrame frame) {
+            public boolean onWsFrame(Connection conn, SnParser.WsFrame frame) {
                 boolean r = false;
-                if(frame.frameType== WsParser.WsFrame.WS_TEXT_FRAME) {
+                if(frame.frameType== SnParser.WsFrame.WS_TEXT_FRAME) {
                     r = wsHandler.onWsMessage(conn,
                             new String(frame.payLoad.array(),
                                     frame.payLoad.position(),
@@ -98,7 +98,7 @@ public abstract class Thttpd implements Observer, Connection.Handler{
             Logger.log("[THttpD] wsHandler is not registered");
             return false;
         }
-        WsParser wsParser = newWsParser(req.getConn());
+        SnParser wsParser = newWsParser(req.getConn());
         String rsp = wsParser.prepare(req.getHeaders());
         if(null==rsp){
             rsp = wsParser.upgrade();
@@ -120,8 +120,8 @@ public abstract class Thttpd implements Observer, Connection.Handler{
             conn.setUsr(p);
         }
         int r;
-        if(p instanceof WsParser) {
-            r = ((WsParser)p).handle(buffer);
+        if(p instanceof SnParser) {
+            r = ((SnParser)p).handle(buffer);
         }else{
             r = ((HttpReq)p).handle(buffer);
         }
@@ -178,7 +178,7 @@ public abstract class Thttpd implements Observer, Connection.Handler{
     }
 
     protected boolean sendWsMessage(Connection conn, String message){
-        WsParser.WsFrame rsp = new WsParser.WsFrame(WsParser.WsFrame.WS_TEXT_FRAME,
+        SnParser.WsFrame rsp = new SnParser.WsFrame(SnParser.WsFrame.WS_TEXT_FRAME,
                 ByteBuffer.wrap(message.getBytes()));
         return conn.sendBuffer(rsp.toByteBuffer().array());
     }
